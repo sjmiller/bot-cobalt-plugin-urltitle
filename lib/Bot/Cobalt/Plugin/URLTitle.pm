@@ -105,7 +105,7 @@ __END__
 
    ## In plugins.conf
    URLTitle:
-      Module: Bot::Cobalt::Plugin::Silly::FMK
+      Module: Bot::Cobalt::Plugin::URLTitle
       Config: plugins/twitter.conf # optional
 
    ## In plugins/twitter.conf
