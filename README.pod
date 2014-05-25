@@ -1,0 +1,50 @@
+=pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+Bot::Cobalt::Plugin::URLTitle - Bot::Cobalt plugin for printing the title of a URL
+
+=head1 VERSION
+
+version 0.001
+
+=head1 SYNOPSIS
+
+   ## In plugins.conf
+   URLTitle:
+      Module: Bot::Cobalt::Plugin::Silly::FMK
+      Config: plugins/twitter.conf # optional
+
+   ## In plugins/twitter.conf
+   ---
+   consumer_key:        <twitter consumer key>
+   consumer_secret:     <twitter consumer secret>
+   access_token:        <twitter access token>
+   access_token_secret: <twitter access token secret>
+
+=head1 DESCRIPTION
+
+A L<Bot::Cobalt> plugin.
+
+This plugin retrieves the title of any URL in a message using 
+L<URI::Title> and prints the message to the channel. 
+
+It has optional support for links of tweets via L<Net::Twitter> in which it
+will print the contents of the tweet rather than the title.
+
+   #mychannel> https://twitter.com/twitter/status/145344012
+   < mybot> Twitter (@twitter) - working on iphones via 'hahlo' and 'pocket tweets' - fun!
+
+=head1 AUTHOR
+
+Scott Miller <scott.j.miller@gmail.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2014 by Scott Miller.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
