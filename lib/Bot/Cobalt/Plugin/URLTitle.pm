@@ -7,35 +7,20 @@ use warnings;
 use Bot::Cobalt;
 use Bot::Cobalt::Common;
 
+use Mojo::UserAgent;
 use HTML::Entities    qw(decode_entities);
 use Text::Unidecode   qw(unidecode);
-use URI::Title        qw(title);
 use URI::Find::Simple qw(list_uris);
 
 sub new     { bless {}, shift  }
-sub twitter { shift->{twitter} }
+sub ua      { shift->{useragent} }
 
 sub Cobalt_register {
    my $self = shift;
    my $core = shift;
    my $conf = $core->get_plugin_cfg($self);
 
-   eval {
-      require Net::Twitter;
-
-      $self->{twitter} = Net::Twitter->new(
-         traits              => [ qw(API::RESTv1_1 RetryOnError) ],
-         consumer_key        => $conf->{consumer_key},
-         consumer_secret     => $conf->{consumer_secret},
-         access_token        => $conf->{access_token},
-         access_token_secret => $conf->{access_token_secret},
-         ssl                 => 1,
-      );      
-   };
-
-   if (my $err = $@) {
-      logger->warn("Unable to create Net::Twitter object: $err");
-   }
+   $self->{useragent} = Mojo::UserAgent->new;
 
    register( $self, 'SERVER', 'public_msg' );
    logger->info("Registered");
@@ -63,34 +48,10 @@ sub Bot_public_msg {
    foreach my $uri ( list_uris($msg->message) ) {
       next if not $uri;
 
-      # There's probably a less fragile way to do this...
-      if ($uri =~ /twitter\.com\/\w+\/status\/(\d+)/ and $self->twitter) {
-         my $id = $1;
-
-         my $tweet = $self->twitter->show_status($id);
-         my $text  = $tweet->{text};
-         my $name  = $tweet->{user}->{name};
-         my $sname = $tweet->{user}->{screen_name};
-         my $user  = sprintf '%s (@%s)', $name, $sname;
-
-         $text = unidecode(decode_entities($text));
-         my @lines  = split /\n/, $text;
-
-         if (@lines == 1) {
-            broadcast( 'message', $context, $channel, "$user - $lines[0]" );
-         }
-         else {
-            broadcast( 'message', $context, $channel, $user );
-            broadcast( 'message', $context, $channel, " - $_" )
-               foreach @lines;
-         }
-      }
-      else {
-         my $title = decode_entities(title($uri)) or next;         
-         my $uni   = unidecode($title);
-         my $resp  = sprintf('[ %s ]', $uni ? $uni : $title);
-         broadcast( 'message', $context, $channel, $resp );
-      }
+      my $title = $self->ua->get($uri)->result->dom->at('title')->text or next;
+      my $uni   = unidecode($title);
+      my $resp  = sprintf('[ %s ]', $uni ? $uni : $title);
+      broadcast( 'message', $context, $channel, $resp );
    }
 
    return PLUGIN_EAT_NONE;
@@ -106,24 +67,11 @@ __END__
    ## In plugins.conf
    URLTitle:
       Module: Bot::Cobalt::Plugin::URLTitle
-      Config: plugins/twitter.conf # optional
-
-   ## In plugins/twitter.conf
-   ---
-   consumer_key:        <twitter consumer key>
-   consumer_secret:     <twitter consumer secret>
-   access_token:        <twitter access token>
-   access_token_secret: <twitter access token secret>
 
 =head1 DESCRIPTION
 
 A L<Bot::Cobalt> plugin.
 
 This plugin retrieves the title of any URL in a message using 
-L<URI::Title> and prints the message to the channel. 
+L<Mojo::UserAgent> and prints the message to the channel. 
 
-It has optional support for links of tweets via L<Net::Twitter> in which it
-will print the contents of the tweet rather than the title.
-
-   #mychannel> https://twitter.com/twitter/status/145344012
-   < mybot> Twitter (@twitter) - working on iphones via 'hahlo' and 'pocket tweets' - fun!
